@@ -526,32 +526,50 @@
     }
 
 async function executeSubmit(mode, data1, data2) {
-      // 【追加】送信直前バリデーション：引数が実質空（スペースのみ）の場合も不正として弾く
+      // データをトリミング（前後の不要なスペースを排除）
       const cleanData1 = data1 ? String(data1).trim() : "";
       const cleanData2 = data2 ? String(data2).trim() : "";
 
-      // 返却・新規登録・削除モード時は data1（端末番号）が必須
-      // 貸出モード時は data1（利用者ID）と data2（端末番号）の両方が必須
-      if (cleanData1 === "" || (mode === "利用者へ貸出" && cleanData2 === "")) {
-        playSound("error");
-        log(`❌ 送信ブロック: 必要なデータが空です。[データ1: "${cleanData1}", データ2: "${cleanData2}"]`);
-        updateStatus("❌ エラー: 識別番号が空のため、処理を中断してリセットします。", "red");
-        setTimeout(() => { resetSystemState(); fetchStockInfo(); }, 3000);
-        return;
+      // 🔥 【修正】モードごとの厳密な空チェック
+      if (mode === "利用者へ出" || mode === "生徒へ貸出") {
+        // 貸出時は、利用者ID(data1) と 端末番号(data2) の「両方」が必須
+        if (cleanData1 === "" || cleanData2 === "") {
+          playSound("error");
+          log(`❌ 送信ブロック(貸出): データが不足しています。[ID: "${cleanData1}", 端末: "${cleanData2}"]`);
+          updateStatus("❌ エラー: 利用者IDまたは端末番号が空です。リセットします。", "red");
+          setTimeout(() => { resetSystemState(); }, 3000);
+          return;
+        }
+      } else {
+        // 返却・新規登録・削除時は、端末番号(data1)「のみ」が必須（data2は空で正常）
+        if (cleanData1 === "") {
+          playSound("error");
+          log(`❌ 送信ブロック(${mode}): 端末番号が空です。`);
+          updateStatus("❌ エラー: 端末番号が読み取れません。リセットします。", "red");
+          setTimeout(() => { resetSystemState(); }, 3000);
+          return;
+        }
       }
 
+      // ─── ここから下は送信処理 ───
       updateStatus("⏳ データを送信中...", "#7f8c8d");
       cancelBtn.style.display = "none";
       
+      // GAS側が「生徒へ貸出/生徒から返却」の文字列で判定しているため置換
+      let submitMode = mode;
+      if (mode === "利用者へ貸出") submitMode = "生徒へ貸出";
+      if (mode === "利用者から返却") submitMode = "生徒から返却";
+
       const formData = new FormData();
-      formData.append(ENTRY_MODE, mode === "利用者へ貸出" ? "生徒へ貸出" : mode === "利用者から返却" ? "生徒から返却" : mode);
+      formData.append(ENTRY_MODE, submitMode);
       formData.append(ENTRY_DATA1, cleanData1);
-      formData.append(ENTRY_DATA2, cleanData2);
+      // 返却時はdata2を空文字（または半角スペース）として安全に送信
+      formData.append(ENTRY_DATA2, cleanData2 === "" ? " " : cleanData2);
 
       try {
         await fetch(FORM_URL, { method: "POST", mode: "no-cors", body: formData });
         playSound("success"); 
-        log(`✅ Googleフォームへのデータ送信を完了しました。`);
+        log(`✅ Googleフォームへのデータ送信を完了しました。[モード: ${submitMode}]`);
         
         if (mode === "利用者へ貸出") {
           updateStatus(`✅ 貸出完了！\n${savedStudentName} さん (${cleanData1}) へ 端末 [${cleanData2}] を登録しました。`, "#2ecc71");
