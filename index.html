@@ -154,19 +154,21 @@
             </div>
           </div>
         </div>
-<div class="stock-panel" style="margin-top: 12px; max-height: 250px; overflow-y: auto;">
+<div class="stock-panel" style="margin-top: 12px; max-height: 280px; overflow-y: auto;">
   <h3>現在のリアルタイム貸出中一覧</h3>
   <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
     <thead>
-      <tr style="border-bottom: 2px solid #ecf0f1; color: #7f8c8d;">
-        <th style="padding: 6px 4px;">貸出物コード</th>
-        <th style="padding: 6px 4px;">端末名/種別</th>
-        <th style="padding: 6px 4px;">貸出生徒氏名</th>
+      <tr style="border-bottom: 2px solid #ecf0f1; color: #7f8c8d; background-color: #fafbfc;">
+        <th style="padding: 8px 4px;">貸出日</th>
+        <th style="padding: 8px 4px;">端末番号</th>
+        <th style="padding: 8px 4px;">貸出物</th>
+        <th style="padding: 8px 4px;">端末名</th>
+        <th style="padding: 8px 4px;">貸出生徒氏名</th>
       </tr>
     </thead>
     <tbody id="active-list-body">
       <tr>
-        <td colspan="3" style="text-align: center; color: #bdc3c7; padding: 10px;">データを読み込み中...</td>
+        <td colspan="5" style="text-align: center; color: #bdc3c7; padding: 10px;">データを読み込み中...</td>
       </tr>
     </tbody>
   </table>
@@ -212,7 +214,7 @@
     const ENTRY_MODE = "entry.866648275";
     const ENTRY_DATA1 = "entry.1165154720";
     const ENTRY_DATA2 = "entry.1094519910";
-    const STOCK_API_URL = "https://script.google.com/a/macros/city.hamamatsu-szo.ed.jp/s/AKfycbzNjpm-CCHNPXaWRePKBNNOs0gHB7tND1emjZ5lLl7cbX4VnFCUG_H1_xPNmk9pNVKAyA/exec"; 
+    const STOCK_API_URL = "https://script.google.com/a/macros/city.hamamatsu-szo.ed.jp/s/AKfycbwaX_d-hG_dpPbXy-K7C7ixhX7byuOfJiF_96hgz-cltcB1NYqMSA7RWZEyPlv-4W-ASg/exec"; 
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
@@ -640,6 +642,8 @@ function fetchStockInfo() {
 }
 
 // 【追加】貸出中一覧をGASからJSONPで取得してテーブルを描画する関数
+// ====== JavaScriptの fetchActiveList 関数を以下に差し替え ======
+
 function fetchActiveList() {
   const callbackNameActive = 'jsonp_active_' + Math.round(100000 * Math.random());
   
@@ -649,15 +653,19 @@ function fetchActiveList() {
     tbody.innerHTML = ""; // 初期化
     
     if (!data.activeList || data.activeList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #95a5a6; padding: 10px;">現在、貸出中の端末はありません。</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #95a5a6; padding: 15px;">現在、貸出中の端末はありません。</td></tr>`;
     } else {
       data.activeList.forEach(item => {
         const tr = document.createElement('tr');
-        tr.style.borderBottom = "1px solid #f4f6f9";
+        tr.style.borderBottom = "1px solid #ecf0f1";
+        
+        // ご指定の順番：①貸出日 ➔ ②端末番号 ➔ ③貸出物 ➔ ④端末名 ➔ ⑤貸出生徒氏名
         tr.innerHTML = `
-          <td style="padding: 6px 4px; font-weight: bold; color: #2c3e50;">${escapeHtml(item.deviceCode)}</td>
-          <td style="padding: 6px 4px; color: #7f8c8d;">${escapeHtml(item.deviceName)}</td>
-          <td style="padding: 6px 4px; font-weight: bold; color: #27ae60;">${escapeHtml(item.studentName)}</td>
+          <td style="padding: 8px 4px; color: #7f8c8d; white-space: nowrap;">${escapeHtml(item.rentDate)}</td>
+          <td style="padding: 8px 4px; font-weight: bold; color: #2c3e50;">${escapeHtml(item.deviceId)}</td>
+          <td style="padding: 8px 4px; color: #34495e;">${escapeHtml(item.itemType)}</td>
+          <td style="padding: 8px 4px; color: #34495e;">${escapeHtml(item.deviceName)}</td>
+          <td style="padding: 8px 4px; font-weight: bold; color: #2ecc71;">${escapeHtml(item.studentName)}</td>
         `;
         tbody.appendChild(tr);
       });
