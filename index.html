@@ -154,11 +154,28 @@
             </div>
           </div>
         </div>
-
+<div class="stock-panel" style="margin-top: 12px; max-height: 250px; overflow-y: auto;">
+  <h3>現在のリアルタイム貸出中一覧</h3>
+  <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+    <thead>
+      <tr style="border-bottom: 2px solid #ecf0f1; color: #7f8c8d;">
+        <th style="padding: 6px 4px;">貸出物コード</th>
+        <th style="padding: 6px 4px;">端末名/種別</th>
+        <th style="padding: 6px 4px;">貸出生徒氏名</th>
+      </tr>
+    </thead>
+    <tbody id="active-list-body">
+      <tr>
+        <td colspan="3" style="text-align: center; color: #bdc3c7; padding: 10px;">データを読み込み中...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
         <div class="log-panel">
           <h3>🚨 システム内部動作ログ</h3>
           <div id="debug-console">--- 運用ログ開始 ---&#13;</div>
         </div>
+        
       </div>
     </div>
   </div>
@@ -195,7 +212,7 @@
     const ENTRY_MODE = "entry.866648275";
     const ENTRY_DATA1 = "entry.1165154720";
     const ENTRY_DATA2 = "entry.1094519910";
-    const STOCK_API_URL = "https://script.google.com/a/macros/city.hamamatsu-szo.ed.jp/s/AKfycbxGmBTg8T4quolzCtotdF3j_V0iWTpd7O2wvbsZ0i3saM3pAPekDj98npUVaGCqe2oMFQ/exec"; 
+    const STOCK_API_URL = "https://script.google.com/a/macros/city.hamamatsu-szo.ed.jp/s/AKfycbzNjpm-CCHNPXaWRePKBNNOs0gHB7tND1emjZ5lLl7cbX4VnFCUG_H1_xPNmk9pNVKAyA/exec"; 
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
@@ -595,30 +612,78 @@ async function executeSubmit(mode, data1, data2) {
       }
     }
 
-    function fetchStockInfo() {
-      if (!STOCK_API_URL) return;
-      const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-      window[callbackName] = function(data) {
-        const pcEl = document.getElementById('stock-pc');
-        const batEl = document.getElementById('stock-battery');
-        if(pcEl) pcEl.innerText = data.pc + " 台"; 
-        if(batEl) batEl.innerText = data.battery + " 個";
-        if(pcEl && data.pc <= 2) pcEl.classList.add('low'); else if(pcEl) pcEl.classList.remove('low');
-        if(batEl && data.battery <= 2) batEl.classList.add('low'); else if(batEl) batEl.classList.remove('low');
-        log(`📊 最新在庫に同期しました。[予備:${data.pc}台 / バッテリー:${data.battery}個]`);
-        delete window[window[callbackName]]; 
-        const sScript = document.getElementById(callbackName);
-        if(sScript) sScript.remove();
-      };
-      const script = document.createElement('script'); 
-      script.id = callbackName;
-      script.src = STOCK_API_URL + (STOCK_API_URL.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
-      script.onerror = function() { 
-        if(document.getElementById('stock-pc')) document.getElementById('stock-pc').innerText = "エラー"; 
-        if(document.getElementById('stock-battery')) document.getElementById('stock-battery').innerText = "エラー"; 
-      };
-      document.body.appendChild(script);
+// ====== JavaScript変更・追加部分 ======
+
+// 1. 既存の fetchStockInfo() を以下のように書き換える（または合わせて呼び出す）
+function fetchStockInfo() {
+  // 既存の在庫数取得
+  const callbackNameStock = 'jsonp_stock_' + Math.round(100000 * Math.random());
+  window[callbackNameStock] = function(data) {
+    document.getElementById('stock-pc').innerText = data.pc;
+    document.getElementById('stock-battery').innerText = data.battery;
+    
+    const pcElem = document.getElementById('stock-pc');
+    if (data.pc <= 3) { pcElem.classList.add('low'); } else { pcElem.classList.remove('low'); }
+    
+    delete window[callbackNameStock];
+    const ts = document.getElementById(callbackNameStock);
+    if(ts) ts.remove();
+  };
+  
+  const scriptStock = document.createElement('script');
+  scriptStock.id = callbackNameStock;
+  scriptStock.src = STOCK_API_URL + (STOCK_API_URL.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackNameStock;
+  document.body.appendChild(scriptStock);
+
+  // 【追加】貸出中一覧の取得
+  fetchActiveList();
+}
+
+// 【追加】貸出中一覧をGASからJSONPで取得してテーブルを描画する関数
+function fetchActiveList() {
+  const callbackNameActive = 'jsonp_active_' + Math.round(100000 * Math.random());
+  
+  window[callbackNameActive] = function(data) {
+    const tbody = document.getElementById('active-list-body');
+    if (!tbody) return;
+    tbody.innerHTML = ""; // 初期化
+    
+    if (!data.activeList || data.activeList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #95a5a6; padding: 10px;">現在、貸出中の端末はありません。</td></tr>`;
+    } else {
+      data.activeList.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = "1px solid #f4f6f9";
+        tr.innerHTML = `
+          <td style="padding: 6px 4px; font-weight: bold; color: #2c3e50;">${escapeHtml(item.deviceCode)}</td>
+          <td style="padding: 6px 4px; color: #7f8c8d;">${escapeHtml(item.deviceName)}</td>
+          <td style="padding: 6px 4px; font-weight: bold; color: #27ae60;">${escapeHtml(item.studentName)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
+    
+    delete window[callbackNameActive];
+    const ta = document.getElementById(callbackNameActive);
+    if(ta) ta.remove();
+  };
+  
+  const scriptActive = document.createElement('script');
+  scriptActive.id = callbackNameActive;
+  scriptActive.src = STOCK_API_URL + (STOCK_API_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=getActiveList&callback=' + callbackNameActive;
+  document.body.appendChild(scriptActive);
+}
+
+// 【追加】エスケープ用安全関数
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// 2. 既存のコードで Google フォーム送信（executeSubmit）を行っている箇所の確認
+// お手元の executeSubmit 内の最後、または完了通知の「setTimeout(() => { resetSystemState(); }, 3000);」
+// のような部分の周辺で `fetchStockInfo();` が実行されているか確認してください。
+// もし無ければ、フォーム送信完了トリガー（ウェイト3秒後）のタイミングに `fetchStockInfo();` を確実に実行させてください。
 
     function playSound(type) {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
