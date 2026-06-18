@@ -79,6 +79,72 @@
     #keypad-cancel { background: #b2bec3; color: white; }
     #keypad-ok { background: #2ecc71; color: white; }
     #keypad-ok:disabled { background: #bdc3c7; cursor: not-allowed; }
+    .stock-panel-compact {
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stock-title-mini {
+  font-size: 13px;
+  font-weight: bold;
+  color: #7f8c8d;
+  border-right: 2px solid #ecf0f1;
+  padding-right: 12px;
+}
+
+.stock-flex-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+  justify-content: flex-start;
+  padding-left: 4px;
+}
+
+.stock-inline-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stock-label-mini {
+  font-size: 13px;
+  color: #333;
+}
+
+.stock-count-mini {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2c3e50;
+  background: #f8f9fa;
+  padding: 2px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  min-width: 30px;
+  text-align: center;
+  display: inline-block;
+}
+
+/* 残数が少ないときのアラート色 */
+.stock-count-mini.low {
+  color: #e74c3c;
+  background: #fdedec;
+  border-color: #fadbd8;
+}
+
+.stock-divider {
+  width: 1px;
+  height: 16px;
+  background-color: #bdc3c7;
+}
 
     /* 📱 スマートフォン向けレスポンシブ設定 (画面幅768px以下) */
     @media (max-width: 768px) {
@@ -102,6 +168,33 @@
       #manual-btn { padding: 14px; font-size: 18px; }
       .stock-count { font-size: 22px; }
       .log-panel { height: 150px; }
+
+      .stock-panel-compact {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+  }
+  .stock-title-mini {
+    border-right: none;
+    border-bottom: 1px solid #ecf0f1;
+    padding-right: 0;
+    padding-bottom: 4px;
+    width: 100%;
+  }
+  .stock-flex-row {
+    width: 100%;
+    justify-content: space-between;
+    padding-left: 0;
+    margin-top: 2px;
+  }
+  .stock-divider {
+    display: none; /* スマホでは区切り線を消して左右に割り振る */
+  }
+  .stock-count-mini {
+    font-size: 18px;
+    padding: 1px 8px;
+  }
+      
     }
   </style>
 </head>
@@ -141,18 +234,20 @@
       </div>
 
       <div class="right-panel">
-        <div class="stock-panel">
-          <h3>現在の貸出可能在庫</h3>
-          <div class="stock-grid">
-            <div class="stock-item">
-              <div>💻 予備機 (9900番台)</div>
-              <div class="stock-count" id="stock-pc">---</div>
-            </div>
-            <div class="stock-item">
-              <div>🔋 モバイルバッテリー</div>
-              <div class="stock-count" id="stock-battery">---</div>
-            </div>
-          </div>
+        <div class="stock-panel-compact">
+  <div class="stock-title-mini">貸出可能在庫</div>
+  <div class="stock-flex-row">
+    <div class="stock-inline-item">
+      <span class="stock-label-mini">💻 予備機 (9900番台):</span>
+      <span class="stock-count-mini" id="stock-pc">---</span>
+    </div>
+    <div class="stock-divider"></div>
+    <div class="stock-inline-item">
+      <span class="stock-label-mini">🔋 モバイルバッテリー:</span>
+      <span class="stock-count-mini" id="stock-battery">---</span>
+    </div>
+  </div>
+</div>
         </div>
 <div class="stock-panel" style="margin-top: 12px; max-height: 280px; overflow-y: auto;">
   <h3>現在のリアルタイム貸出中一覧</h3>
