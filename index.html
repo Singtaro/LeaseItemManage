@@ -730,9 +730,10 @@
         osc.type = 'sine';
         osc.frequency.setValueAtTime(523, audioCtx.currentTime);
         osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.2);
+        osc.frequency.setValueAtTime(783, audioCtx.currentTime + 0.4);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-      }
+        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 1.0);
+        osc.stop(audioCtx.currentTime + 1.0);      }
     }
   </script>
 </body>
